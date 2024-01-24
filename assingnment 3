@@ -1,0 +1,110 @@
+pip install Flask
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///example.db'  # SQLite database for simplicity
+db = SQLAlchemy(app)
+
+# Define the models
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+
+class UserProject(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+
+class TaskProject(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    userproject_id = db.Column(db.Integer, db.ForeignKey('user_project.id'), nullable=False)
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
+
+# API endpoints
+@app.route('/add_user_project', methods=['POST'])
+def add_user_project():
+    data = request.get_json()
+
+    user_id = data.get('user_id')
+    project_name = data.get('project_name')
+
+    user_project_entry = UserProject.query.filter_by(user_id=user_id, project_id=project_name).first()
+
+    if user_project_entry is None:
+        user = User.query.get(user_id)
+
+        if user is None:
+            return jsonify({'error': 'User not found'}), 404
+
+        project = Project.query.filter_by(name=project_name).first()
+
+        if project is None:
+            project = Project(name=project_name)
+            db.session.add(project)
+            db.session.commit()
+
+        user_project_entry = UserProject(user_id=user_id, project_id=project.id)
+        db.session.add(user_project_entry)
+        db.session.commit()
+
+        return jsonify({'message': 'UserProject entry added successfully'}), 201
+    else:
+        return jsonify({'message': 'UserProject entry already exists'}), 200
+
+@app.route('/add_task_project', methods=['POST'])
+def add_task_project():
+    data = request.get_json()
+
+    user_project_id = data.get('user_project_id')
+    task_id = data.get('task_id')
+
+    task_project_entry = TaskProject.query.filter_by(user_project_id=user_project_id, task_id=task_id).first()
+
+    if task_project_entry is None:
+        user_project = UserProject.query.get(user_project_id)
+
+        if user_project is None:
+            return jsonify({'error': 'UserProject entry not found'}), 404
+
+        task = Task.query.get(task_id)
+
+        if task is None:
+            return jsonify({'error': 'Task not found'}), 404
+
+        task_project_entry = TaskProject(userproject_id=user_project_id, task_id=task_id)
+        db.session.add(task_project_entry)
+        db.session.commit()
+
+        return jsonify({'message': 'TaskProject entry added successfully'}), 201
+    else:
+        return jsonify({'message': 'TaskProject entry already exists'}), 200
+
+@app.route('/get_task_project', methods=['GET'])
+def get_task_project():
+    task_project_entries = TaskProject.query.join(UserProject).join(User).join(Project).join(Task).all()
+
+    result = []
+    for entry in task_project_entries:
+        result.append({
+            'user_id': entry.userproject.user.id,
+            'user_name': entry.userproject.user.name,
+            'project_id': entry.userproject.project.id,
+            'project_name': entry.userproject.project.name,
+            'task_id': entry.task.id,
+            'task_name': entry.task.name
+        })
+
+    return jsonify(result)
+
+if __name__ == '__main__':
+    db.create_all()
+    app.run(debug=True)
