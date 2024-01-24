@@ -1,0 +1,52 @@
+// User.java
+@Entity
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private String name;
+
+    // getters and setters
+}
+// UserRepository.java
+public interface UserRepository extends JpaRepository<User, Long> {
+}
+// UserService.java
+@Service
+public class UserService {
+    @Autowired
+    private UserRepository userRepository;
+
+    // methods for user-related operations
+}
+// UserController.java
+@RestController
+@RequestMapping("/api/user")
+public class UserController {
+    @Autowired
+    private UserService userService;
+
+    // API endpoints for user-related operations
+}
+// UserProjectController.java
+@RestController
+@RequestMapping("/api/userproject")
+public class UserProjectController {
+    @Autowired
+    private UserProjectService userProjectService;
+
+    @PostMapping("/add")
+    public ResponseEntity<String> addUserProjectEntry(@RequestBody UserProjectRequest request) {
+        try {
+            userProjectService.addUserProjectEntry(request.getUserId(), request.getProjectName());
+            return ResponseEntity.status(HttpStatus.CREATED).body("UserProject entry added successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error adding UserProject entry");
+        }
+    }
+}
+spring.datasource.url=jdbc:mysql://localhost:3306/your_database_name
+spring.datasource.username=your_database_username
+spring.datasource.password=your_database_password
+spring.jpa.hibernate.ddl-auto=update
