@@ -1,0 +1,111 @@
+npx create-react-app makeup-app
+cd makeup-app
+// src/components/Login.js
+import React, { useState } from 'react';
+
+const Login = ({ onLogin }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = () => {
+    // Implement hardcoded credentials check
+    if (username === 'yourUsername' && password === 'yourPassword') {
+      onLogin();
+    } else {
+      alert('Invalid credentials');
+    }
+  };
+
+  return (
+    <div>
+      <h2>Login</h2>
+      <input
+        type="text"
+        placeholder="Username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button onClick={handleLogin}>Login</button>
+    </div>
+  );
+};
+
+export default Login;
+npm install react-router-dom
+// src/App.js
+import React from 'react';
+import { BrowserRouter as Router, Route, Redirect } from 'react-router-dom';
+import Login from './components/Login';
+import Home from './components/Home';
+
+const App = () => {
+  const [loggedIn, setLoggedIn] = React.useState(false);
+
+  const handleLogin = () => {
+    setLoggedIn(true);
+  };
+
+  return (
+    <Router>
+      <Route
+        path="/login"
+        render={() => (loggedIn ? <Redirect to="/home" /> : <Login onLogin={handleLogin} />)}
+      />
+      <Route path="/home" render={() => (loggedIn ? <Home /> : <Redirect to="/login" />)} />
+    </Router>
+  );
+};
+
+export default App;
+// src/components/BrandInformation.js
+import React, { useEffect, useState } from 'react';
+
+const BrandInformation = ({ match }) => {
+  const [brandData, setBrandData] = useState([]);
+
+  useEffect(() => {
+    const fetchBrandData = async () => {
+      try {
+        const response = await fetch(`http://makeup-api.herokuapp.com/api/v1/products.json?brand=${match.params.brand}`);
+        const data = await response.json();
+        setBrandData(data);
+      } catch (error) {
+        console.error('Error fetching brand data:', error);
+      }
+    };
+
+    fetchBrandData();
+  }, [match.params.brand]);
+
+  return (
+    <div>
+      <h2>{match.params.brand} Information</h2>
+      {/* Display brand information here */}
+    </div>
+  );
+};
+
+export default BrandInformation;
+// src/components/Home.js
+import React from 'react';
+import { Link } from 'react-router-dom';
+import BrandsList from './BrandsList';
+
+const Home = () => {
+  return (
+    <div>
+      <h2>Home</h2>
+      <BrandsList />
+    </div>
+  );
+};
+
+export default Home;
+
+
